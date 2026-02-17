@@ -3,31 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CPU Meltdown Sphere</title>
+    <title>☢️ ULTIMATE Browser Stress Test</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: monospace; touch-action: none; }
-        #ui-panel {
-            position: absolute; top: 10px; left: 10px; 
-            background: rgba(20, 0, 30, 0.8); border: 1px solid #f0f;
-            padding: 15px; border-radius: 8px; pointer-events: auto;
-            box-shadow: 0 0 20px #f0f;
-            width: 220px;
-        }
-        h1 { margin: 0 0 10px 0; font-size: 16px; color: #f0f; text-transform: uppercase; }
-        .stat { font-size: 12px; color: #ccc; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .val { font-weight: bold; color: #fff; }
-        .val.danger { color: #f00; }
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background-color: #050005; color: white; font-family: 'Courier New', monospace; touch-action: none; }
         
-        /* TOGGLE SWITCH */
-        .toggle-container { display: flex; margin: 15px 0; border: 2px solid #555; border-radius: 4px; overflow: hidden; }
-        .toggle-btn { flex: 1; padding: 10px; text-align: center; background: #222; cursor: pointer; transition: 0.2s; font-weight: bold; }
-        .toggle-btn.active-cpu { background: #f00; color: black; box-shadow: inset 0 0 10px #500; }
-        .toggle-btn.active-gpu { background: #0f0; color: black; box-shadow: inset 0 0 10px #050; }
-
-        /* SLIDER */
-        input[type=range] { width: 100%; accent-color: #f0f; margin: 10px 0; }
-        label { font-size: 12px; color: #f0f; }
-        #kill-warning { color: #f00; font-size: 10px; text-align: center; display: none; font-weight: bold;}
+        #ui-panel {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(20, 0, 30, 0.95); border: 2px solid #f0f;
+            padding: 20px; border-radius: 12px; pointer-events: auto;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+            width: 320px; max-height: 90vh; overflow-y: auto;
+            font-size: 11px;
+        }
+        
+        #ui-panel::-webkit-scrollbar { width: 8px; }
+        #ui-panel::-webkit-scrollbar-track { background: #200; }
+        #ui-panel::-webkit-scrollbar-thumb { background: #f0f; border-radius: 4px; }
+        
+        h1 { margin: 0 0 15px 0; font-size: 18px; color: #f0f; text-transform: uppercase; text-shadow: 0 0 10px #f0f; text-align: center; }
+        h2 { margin: 15px 0 8px 0; font-size: 12px; color: #a0a; text-transform: uppercase; border-bottom: 1px solid #505; padding-bottom: 4px; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #ccc; }
+        .stat-row .val { font-weight: bold; color: #fff; }
+        .stat-row .val.danger { color: #f00; }
+        .stat-row .val.warning { color: #fa0; }
+        .stat-row .val.good { color: #0f0; }
+        
+        .toggle-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .toggle-btn {
+            flex: 1; min-width: 90px; padding: 8px 4px;
+            text-align: center; background: #222; cursor: pointer;
+            transition: 0.2s; font-weight: bold; font-size: 10px;
+            border: 1px solid #444; border-radius: 4px;
+            color: #888;
+        }
+        .toggle-btn:hover { border-color: #f0f; }
+        .toggle-btn.active { background: #f0f; color: black; box-shadow: 0 0 10px #f0f; }
+        .toggle-btn.active-danger { background: #f00; color: black; box-shadow: 0 0 10px #f00; }
+        .toggle-btn.active-warning { background: #fa0; color: black; box-shadow: 0 0 10px #fa0; }
+        
+        input[type=range] { width: 100%; accent-color: #f0f; margin: 8px 0; }
+        label { font-size: 10px; color: #f0f; display: block; margin-bottom: 2px; }
+        
+        .preset-btn {
+            width: 100%; padding: 10px; margin: 4px 0;
+            background: linear-gradient(135deg, #300 0%, #600 100%);
+            border: 1px solid #f00; cursor: pointer;
+            color: white; font-weight: bold; border-radius: 6px;
+            transition: 0.2s;
+        }
+        .preset-btn:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+        .preset-btn.moderate { background: linear-gradient(135deg, #330 0%, #660 100%); border-color: #fa0; }
+        .preset-btn.extreme { background: linear-gradient(135deg, #003 0%, #006 100%); border-color: #0ff; }
+        
+        .emergency-stop {
+            width: 100%; padding: 15px; margin: 15px 0;
+            background: linear-gradient(135deg, #600 0%, #a00 100%);
+            border: 3px solid #f00; cursor: pointer;
+            color: white; font-weight: bold; font-size: 14px;
+            border-radius: 8px; animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 10px #f00; } 50% { box-shadow: 0 0 30px #f00; } }
+        
+        .warning-box {
+            background: rgba(255, 0, 0, 0.2); border: 1px solid #f00;
+            padding: 10px; border-radius: 6px; margin: 10px 0;
+            font-size: 10px; color: #faa; display: none;
+        }
+        .warning-box.visible { display: block; }
+        
+        .category { margin: 12px 0; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; }
+        
+        #stressor-count { font-size: 24px; color: #f0f; text-align: center; margin: 10px 0; }
+        
+        .progress-bar { width: 100%; height: 6px; background: #222; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #0f0, #ff0, #f00); transition: width 0.3s; }
     </style>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -35,240 +86,1382 @@
 </head>
 <body>
     <div id="ui-panel">
-        <h1>Processing Unit Torture</h1>
-        <div class="stat">FPS: <span id="fps-val" class="val">0</span></div>
-        <div class="stat">Vertices: <span id="verts-val" class="val">0</span></div>
-        <div class="stat">JS Time (ms): <span id="js-val" class="val">0</span></div>
+        <h1>☢️ Browser Meltdown</h1>
+        <div id="stressor-count">0 Stressors Active</div>
         
-        <div class="toggle-container">
-            <div id="cpu-btn" class="toggle-btn">CPU (SLOW)</div>
-            <div id="gpu-btn" class="toggle-btn active-gpu">GPU (FAST)</div>
+        <h2>Performance</h2>
+        <div class="stat-row"><span>FPS:</span><span id="fps-val" class="val">0</span></div>
+        <div class="stat-row"><span>Frame Time:</span><span id="frame-val" class="val">0</span></div>
+        <div class="stat-row"><span>JS Time:</span><span id="js-val" class="val">0</span></div>
+        <div class="stat-row"><span>Vertices:</span><span id="verts-val" class="val">0</span></div>
+        <div class="stat-row"><span>Draw Calls:</span><span id="draw-val" class="val">0</span></div>
+        <div class="stat-row"><span>Web Workers:</span><span id="worker-val" class="val">0</span></div>
+        <div class="stat-row"><span>Audio Nodes:</span><span id="audio-val" class="val">0</span></div>
+        <div class="stat-row"><span>Memory:</span><span id="mem-val" class="val">--</span></div>
+        <div class="progress-bar"><div id="load-bar" class="progress-bar-fill" style="width: 0%"></div></div>
+        
+        <h2>Presets</h2>
+        <button class="preset-btn moderate" id="preset-laggy">🟡 LAGGY (Heavy Load)</button>
+        <button class="preset-btn" id="preset-freeze">🔴 FREEZE (Extreme)</button>
+        <button class="preset-btn extreme" id="preset-crash">💀 CRASH (DANGER)</button>
+        
+        <h2>Geometry Stressors</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn" data-stressor="multiSphere">Multi-Sphere</div>
+                <div class="toggle-btn" data-stressor="torusKnot">Torus Knot</div>
+                <div class="toggle-btn" data-stressor="icosahedron">Icosahedron</div>
+            </div>
+            <label>Geometry Density</label>
+            <input type="range" id="geo-density" min="100" max="500" step="50" value="200">
+            <div class="toggle-group">
+                <div class="toggle-btn" data-stressor="morphTargets">Morph Targets</div>
+                <div class="toggle-btn active-danger" data-stressor="cpuDeform">CPU Deform</div>
+            </div>
         </div>
         
-        <label>Meltdown Factor (Density)</label>
-        <input type="range" id="density-slider" min="100" max="500" step="50" value="200">
-        <div id="kill-warning">⚠️ MAX SETTING WILL FREEZE DEVICE</div>
+        <h2>Particle Systems</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn" data-stressor="gpuParticles">GPU Particles</div>
+                <div class="toggle-btn active-danger" data-stressor="cpuParticles">CPU Particles</div>
+                <div class="toggle-btn" data-stressor="particleTrails">Particle Trails</div>
+            </div>
+            <label>Particle Count</label>
+            <input type="range" id="particle-count" min="1000" max="100000" step="1000" value="10000">
+        </div>
+        
+        <h2>Physics</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn active" data-stressor="verletCloth">Verlet Cloth</div>
+                <div class="toggle-btn active-danger" data-stressor="softBody">Soft Body</div>
+                <div class="toggle-btn" data-stressor="collision">Collision</div>
+            </div>
+        </div>
+        
+        <h2>Compute & Workers</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn active" data-stressor="webWorkers">Web Workers</div>
+                <div class="toggle-btn" data-stressor="workerPool">Worker Pool</div>
+            </div>
+            <label>Worker Count</label>
+            <input type="range" id="worker-count" min="1" max="16" step="1" value="4">
+        </div>
+        
+        <h2>Shaders & Effects</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn active" data-stressor="complexShaders">Complex Shaders</div>
+                <div class="toggle-btn" data-stressor="postProcess">Post-Processing</div>
+                <div class="toggle-btn active-warning" data-stressor="bloom">Bloom</div>
+                <div class="toggle-btn" data-stressor="chromatic">Chromatic</div>
+            </div>
+        </div>
+        
+        <h2>Audio Stressor</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn" data-stressor="oscillatorBank">Oscillator Bank</div>
+                <div class="toggle-btn" data-stressor="audioAnalysis">Audio Analysis</div>
+            </div>
+            <label>Oscillator Count</label>
+            <input type="range" id="oscillator-count" min="10" max="500" step="10" value="50">
+        </div>
+        
+        <h2>Memory & DOM</h2>
+        <div class="category">
+            <div class="toggle-group">
+                <div class="toggle-btn active-danger" data-stressor="memoryAlloc">Memory Alloc</div>
+                <div class="toggle-btn active-danger" data-stressor="domThrashing">DOM Thrashing</div>
+                <div class="toggle-btn" data-stressor="canvas2D">Canvas 2D</div>
+            </div>
+        </div>
+        
+        <button class="emergency-stop" id="emergency-stop">🛑 EMERGENCY STOP</button>
+        
+        <div class="warning-box" id="warning-box">
+            ⚠️ HIGH STRESS LEVEL - Browser may become unresponsive. Reduce stressors immediately if needed.
+        </div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- CONFIG ---
-        let SEGMENTS = 200; // Initial density
-        let RADIUS = 50;
-        let MODE = 'gpu'; // Start fast
-        const INPUT_VECTOR = new THREE.Vector2(0, 0); // Holds Gyro/Mouse data once per frame
+        // ============================================
+        // GLOBAL CONFIGURATION
+        // ============================================
+        const CONFIG = {
+            geoDensity: 200,
+            particleCount: 10000,
+            workerCount: 4,
+            oscillatorCount: 50,
+            radius: 50,
+            inputVector: new THREE.Vector2(0, 0)
+        };
+
+        const STRESSORS = {
+            multiSphere: false,
+            torusKnot: false,
+            icosahedron: false,
+            morphTargets: false,
+            cpuDeform: false,
+            gpuParticles: false,
+            cpuParticles: false,
+            particleTrails: false,
+            verletCloth: false,
+            softBody: false,
+            collision: false,
+            webWorkers: false,
+            workerPool: false,
+            complexShaders: false,
+            postProcess: false,
+            bloom: false,
+            chromatic: false,
+            oscillatorBank: false,
+            audioAnalysis: false,
+            memoryAlloc: false,
+            domThrashing: false,
+            canvas2D: false
+        };
+
+        const COLORS = {
+            low: new THREE.Color(0x0055ff),
+            high: new THREE.Color(0xff2200),
+            particle1: new THREE.Color(0x00ffff),
+            particle2: new THREE.Color(0xff00ff),
+            particle3: new THREE.Color(0xffff00)
+        };
+
         let TIME = 0;
+        let activeStressors = 0;
 
-        // Color Palette (Vibrant)
-        const COLOR_LOW = new THREE.Color(0x0055ff); // Deep Blue
-        const COLOR_HIGH = new THREE.Color(0xff2200); // Hot Red/Orange
+        // ============================================
+        // WEB WORKER CODE (Inline)
+        // ============================================
+        const workerCode = `
+            self.onmessage = function(e) {
+                const { type, data } = e.data;
+                
+                if (type === 'calculateVertices') {
+                    const { positions, normals, time, input, count } = data;
+                    const result = new Float32Array(count * 3);
+                    
+                    for (let i = 0; i < count; i++) {
+                        const ix = i * 3, iy = i * 3 + 1, iz = i * 3 + 2;
+                        const bx = positions[ix], by = positions[iy], bz = positions[iz];
+                        const nx = normals[ix], ny = normals[iy], nz = normals[iz];
+                        
+                        let d = Math.sin(bx * 0.05 + time + input.x);
+                        d *= Math.cos(by * 0.05 + time + input.y);
+                        d += Math.sin(bz * 0.1 + time) * 0.5;
+                        const displacement = d * 15.0;
+                        
+                        result[ix] = bx + (nx * displacement);
+                        result[iy] = by + (ny * displacement);
+                        result[iz] = bz + (nz * displacement);
+                    }
+                    
+                    self.postMessage({ type: 'verticesCalculated', data: result.buffer }, [result.buffer]);
+                }
+                
+                if (type === 'physicsStep') {
+                    const { particles, gravity, damping } = data;
+                    const result = new Float32Array(particles.length);
+                    
+                    for (let i = 0; i < particles.length; i += 4) {
+                        result[i] = particles[i] + particles[i + 2] * damping;
+                        result[i + 1] = particles[i + 1] + particles[i + 3] * damping + gravity;
+                        result[i + 2] = particles[i + 2] * 0.99;
+                        result[i + 3] = particles[i + 3] * 0.99;
+                    }
+                    
+                    self.postMessage({ type: 'physicsComplete', data: result.buffer }, [result.buffer]);
+                }
+                
+                if (type === 'heavyComputation') {
+                    // Stress test: Fibonacci calculation
+                    const fib = n => n <= 1 ? n : fib(n - 1) + fib(n - 2);
+                    const iterations = data.iterations || 30;
+                    let sum = 0;
+                    for (let i = 0; i < 1000; i++) {
+                        sum += fib(iterations);
+                    }
+                    self.postMessage({ type: 'computationComplete', sum });
+                }
+            };
+        `;
 
-        // --- SCENE SETUP ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 150;
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        // IMPORTANT: On high-DPI mobile screens, this ensures we render max pixels for GPU load
-        renderer.setPixelRatio(window.devicePixelRatio); 
-        document.body.appendChild(renderer.domElement);
+        const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(workerBlob);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
-
-        // --- MATERIALS ---
-        
-        // GPU Shader Material (Parallel Processing)
-        const gpuMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uInput: { value: new THREE.Vector2(0, 0) },
-                uColorLow: { value: COLOR_LOW },
-                uColorHigh: { value: COLOR_HIGH }
-            },
-            vertexShader: `
+        // ============================================
+        // SHADER LIBRARY
+        // ============================================
+        const SHADERS = {
+            noise: `
+                vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+                vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+                
+                float snoise(vec3 v) {
+                    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                    
+                    vec3 i = floor(v + dot(v, C.yyy));
+                    vec3 x0 = v - i + dot(i, C.xxx);
+                    
+                    vec3 g = step(x0.yzx, x0.xyz);
+                    vec3 l = 1.0 - g;
+                    vec3 i1 = min(g.xyz, l.zxy);
+                    vec3 i2 = max(g.xyz, l.zxy);
+                    
+                    vec3 x1 = x0 - i1 + C.xxx;
+                    vec3 x2 = x0 - i2 + C.yyy;
+                    vec3 x3 = x0 - D.yyy;
+                    
+                    i = mod289(i);
+                    vec4 p = permute(permute(permute(
+                        i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                        
+                    float n_ = 0.142857142857;
+                    vec3 ns = n_ * D.wyz - D.xzx;
+                    
+                    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                    
+                    vec4 x_ = floor(j * ns.z);
+                    vec4 y_ = floor(j - 7.0 * x_);
+                    
+                    vec4 x = x_ *ns.x + ns.yyyy;
+                    vec4 y = y_ *ns.x + ns.yyyy;
+                    vec4 h = 1.0 - abs(x) - abs(y);
+                    
+                    vec4 b0 = vec4(x.xy, y.xy);
+                    vec4 b1 = vec4(x.zw, y.zw);
+                    
+                    vec4 s0 = floor(b0)*2.0 + 1.0;
+                    vec4 s1 = floor(b1)*2.0 + 1.0;
+                    vec4 sh = -step(h, vec4(0.0));
+                    
+                    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+                    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+                    
+                    vec3 p0 = vec3(a0.xy, h.x);
+                    vec3 p1 = vec3(a0.zw, h.y);
+                    vec3 p2 = vec3(a1.xy, h.z);
+                    vec3 p3 = vec3(a1.zw, h.w);
+                    
+                    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+                    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+                    
+                    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                    m = m * m;
+                    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+                }
+                
+                float fbm(vec3 p) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    for (int i = 0; i < 6; i++) {
+                        value += amplitude * snoise(p);
+                        p *= 2.0;
+                        amplitude *= 0.5;
+                    }
+                    return value;
+                }
+            `,
+            
+            vertexDisplacement: `
                 uniform float uTime;
                 uniform vec2 uInput;
-                varying float vDisplacement; // Pass to fragment shader
+                uniform int uComplexity;
+                varying float vDisplacement;
+                varying vec3 vNormal;
+                varying vec3 vPosition;
                 
-                // Complex math function run on GPU for every vertex
-                float calculateDisplacement(vec3 p) {
-                    // Combine X, Y, Z with Time and Input for complex 3D noise pattern
-                    float d = sin(p.x * 0.05 + uTime + uInput.x);
-                    d *= cos(p.y * 0.05 + uTime + uInput.y);
-                    d += sin(p.z * 0.1 + uTime) * 0.5;
-                    return d * 15.0; // Amplitude (Max displacement +/- 15)
+                ${SHADERS.noise}
+                
+                float calculateDisplacement(vec3 p, float time) {
+                    float d = 0.0;
+                    
+                    if (uComplexity == 0) {
+                        // Simple
+                        d = sin(p.x * 0.05 + time + uInput.x);
+                        d *= cos(p.y * 0.05 + time + uInput.y);
+                    } else if (uComplexity == 1) {
+                        // Medium
+                        d = fbm(p * 0.02 + time * 0.5);
+                    } else {
+                        // Complex - multiple layered noise
+                        d = fbm(p * 0.03 + vec3(uInput.x, uInput.y, time * 0.3));
+                        d += 0.5 * snoise(p * 0.1 + time);
+                        d += 0.25 * sin(p.x * 0.2 + time * 2.0) * cos(p.z * 0.2 + time * 2.0);
+                    }
+                    
+                    return d * 15.0;
                 }
-
+                
                 void main() {
-                    vDisplacement = calculateDisplacement(position);
-                    // Move vertex along its normal vector (outward/inward)
-                    vec3 newPosition = position + (normal * vDisplacement);
+                    vNormal = normal;
+                    vPosition = position;
+                    vDisplacement = calculateDisplacement(position, uTime);
+                    vec3 newPosition = position + normal * vDisplacement;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
                 }
             `,
-            fragmentShader: `
+            
+            fragmentColor: `
                 uniform vec3 uColorLow;
                 uniform vec3 uColorHigh;
+                uniform float uTime;
                 varying float vDisplacement;
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                
                 void main() {
-                    // Map displacement range (-15 to 15) to 0.0 to 1.0 range
                     float t = smoothstep(-15.0, 15.0, vDisplacement);
-                    // Mix colors precisely based on displacement height
-                    gl_FragColor = vec4(mix(uColorLow, uColorHigh, t), 1.0);
+                    
+                    vec3 color = mix(uColorLow, uColorHigh, t);
+                    
+                    // Add rim lighting
+                    vec3 viewDir = normalize(cameraPosition - vPosition);
+                    float rim = 1.0 - max(dot(vNormal, viewDir), 0.0);
+                    rim = pow(rim, 3.0);
+                    color += vec3(0.2, 0.0, 0.4) * rim;
+                    
+                    // Add pulsing glow
+                    float pulse = sin(uTime * 2.0) * 0.5 + 0.5;
+                    color += vec3(0.1, 0.0, 0.2) * pulse * t;
+                    
+                    gl_FragColor = vec4(color, 1.0);
                 }
             `
-        });
+        };
 
-        // CPU Material (BasicMaterial makes vertex colors vibrant, ignoring lights)
-        const cpuMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, wireframe: false });
+        // ============================================
+        // STRESSOR CLASSES
+        // ============================================
 
-        // --- MESH MANAGEMENT ---
-        let mesh, geometry, basePositions;
-
-        function rebuildMesh() {
-            if (mesh) { scene.remove(mesh); geometry.dispose(); }
+        class GeometryStressor {
+            constructor(scene) {
+                this.scene = scene;
+                this.meshes = [];
+                this.geometries = [];
+                this.materials = [];
+                this.basePositions = [];
+            }
             
-            // 1. Create high-density sphere geometry
-            geometry = new THREE.SphereGeometry(RADIUS, SEGMENTS, SEGMENTS);
+            createSphere(position, scale) {
+                const geo = new THREE.SphereGeometry(CONFIG.radius * scale, CONFIG.geoDensity, CONFIG.geoDensity);
+                const basePos = Float32Array.from(geo.attributes.position.array);
+                this.basePositions.push(basePos);
+                
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uTime: { value: 0 },
+                        uInput: { value: new THREE.Vector2(0, 0) },
+                        uComplexity: { value: STRESSORS.complexShaders ? 2 : 0 },
+                        uColorLow: { value: COLORS.low },
+                        uColorHigh: { value: COLORS.high }
+                    },
+                    vertexShader: SHADERS.vertexDisplacement,
+                    fragmentShader: SHADERS.fragmentColor
+                });
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(position);
+                this.scene.add(mesh);
+                
+                this.meshes.push(mesh);
+                this.geometries.push(geo);
+                this.materials.push(mat);
+                
+                return mesh;
+            }
             
-            // 2. Store original "base" positions (crucial for CPU calculations)
-            // We need to clone it because we will be overwriting the actual position attribute every frame
-            basePositions = Float32Array.from(geometry.attributes.position.array);
-
-            // 3. Add color attribute for CPU mode
-            const count = geometry.attributes.position.count;
-            geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
-
-            // 4. Assign material based on current mode
-            mesh = new THREE.Mesh(geometry, MODE === 'gpu' ? gpuMaterial : cpuMaterial);
-            scene.add(mesh);
-
-            // Update UI
-            document.getElementById('verts-val').innerText = count.toLocaleString();
-            document.getElementById('kill-warning').style.display = SEGMENTS >= 400 ? 'block' : 'none';
-        }
-
-        rebuildMesh(); // Initial build
-
-        // --- THE BATTLEFIELD (Animation Loop) ---
-        let lastTime = performance.now(); let frames = 0;
-        const fpsEl = document.getElementById('fps-val');
-        const jsEl = document.getElementById('js-val');
-
-        function animate() {
-            requestAnimationFrame(animate);
-            TIME += 0.03;
-            controls.update();
-
-            const jsStart = performance.now();
-
-            // --- BRANCHING PATHS ---
-            if (MODE === 'gpu') {
-                // --- GPU PATH (Easy Street) ---
-                // Just update 2 uniforms. The GPU does millions of calculations in parallel.
-                gpuMaterial.uniforms.uTime.value = TIME;
-                gpuMaterial.uniforms.uInput.value.copy(INPUT_VECTOR);
-
-            } else {
-                // --- CPU PATH (The Torture Chamber) ---
-                const positions = geometry.attributes.position.array; // The array we write to
-                const normals = geometry.attributes.normal.array;       // Direction to move
-                const colors = geometry.attributes.color.array;         // Colors to write
-                const count = geometry.attributes.position.count;
-
-                // THE LOOP OF DEATH: Run this math 250,000 times linearly in JS
-                for (let i = 0; i < count; i++) {
-                    const ix = i * 3; const iy = i * 3 + 1; const iz = i * 3 + 2;
-
-                    // Read BASE position (where it started)
-                    const bx = basePositions[ix]; const by = basePositions[iy]; const bz = basePositions[iz];
+            createTorusKnot(position) {
+                const geo = new THREE.TorusKnotGeometry(CONFIG.radius * 0.6, CONFIG.radius * 0.15, CONFIG.geoDensity * 2, 32);
+                const basePos = Float32Array.from(geo.attributes.position.array);
+                this.basePositions.push(basePos);
+                
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uTime: { value: 0 },
+                        uInput: { value: new THREE.Vector2(0, 0) },
+                        uComplexity: { value: 2 },
+                        uColorLow: { value: new THREE.Color(0xff00ff) },
+                        uColorHigh: { value: new THREE.Color(0x00ffff) }
+                    },
+                    vertexShader: SHADERS.vertexDisplacement,
+                    fragmentShader: SHADERS.fragmentColor
+                });
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(position);
+                this.scene.add(mesh);
+                
+                this.meshes.push(mesh);
+                this.geometries.push(geo);
+                this.materials.push(mat);
+                
+                return mesh;
+            }
+            
+            createIcosahedron(position) {
+                const geo = new THREE.IcosahedronGeometry(CONFIG.radius * 0.8, CONFIG.geoDensity / 50);
+                const basePos = Float32Array.from(geo.attributes.position.array);
+                this.basePositions.push(basePos);
+                
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uTime: { value: 0 },
+                        uInput: { value: new THREE.Vector2(0, 0) },
+                        uComplexity: { value: 1 },
+                        uColorLow: { value: new THREE.Color(0xffff00) },
+                        uColorHigh: { value: new THREE.Color(0xff0000) }
+                    },
+                    vertexShader: SHADERS.vertexDisplacement,
+                    fragmentShader: SHADERS.fragmentColor,
+                    wireframe: true
+                });
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(position);
+                this.scene.add(mesh);
+                
+                this.meshes.push(mesh);
+                this.geometries.push(geo);
+                this.materials.push(mat);
+                
+                return mesh;
+            }
+            
+            update(time) {
+                for (let i = 0; i < this.meshes.length; i++) {
+                    this.materials[i].uniforms.uTime.value = time;
+                    this.materials[i].uniforms.uInput.value.copy(CONFIG.inputVector);
+                    this.materials[i].uniforms.uComplexity.value = STRESSORS.complexShaders ? 2 : 0;
                     
-                    // 1. THE MATH (Must match GLSL exactly)
-                    let d = Math.sin(bx * 0.05 + TIME + INPUT_VECTOR.x);
-                    d *= Math.cos(by * 0.05 + TIME + INPUT_VECTOR.y);
-                    d += Math.sin(bz * 0.1 + TIME) * 0.5;
-                    const displacement = d * 15.0;
-
-                    // 2. THE MOVEMENT (Apply displacement along normal vector)
-                    positions[ix] = bx + (normals[ix] * displacement);
-                    positions[iy] = by + (normals[iy] * displacement);
-                    positions[iz] = bz + (normals[iz] * displacement);
-
-                    // 3. THE COLOR (Lerp between blue and red based on displacement)
-                    // Normalize displacement (-15 to 15) into 0 to 1 range
-                    let t = (displacement + 15) / 30;
-                    t = Math.max(0, Math.min(1, t)); // Clamp
-
-                    // Linear interpolation (lerp) for vibrant colors
-                    colors[ix] = COLOR_LOW.r + (COLOR_HIGH.r - COLOR_LOW.r) * t;
-                    colors[iy] = COLOR_LOW.g + (COLOR_HIGH.g - COLOR_LOW.g) * t;
-                    colors[iz] = COLOR_LOW.b + (COLOR_HIGH.b - COLOR_LOW.b) * t;
+                    // Rotate
+                    this.meshes[i].rotation.y += 0.002;
+                    this.meshes[i].rotation.x += 0.001;
                 }
-                // Tell Three.js we changed massive amounts of data
-                geometry.attributes.position.needsUpdate = true;
-                geometry.attributes.color.needsUpdate = true;
             }
-
-            const jsEnd = performance.now();
-            const jsDuration = jsEnd - jsStart;
             
-            // Performance Measurer
-            frames++;
-            if (jsEnd - lastTime >= 1000) {
-                fpsEl.innerText = frames;
-                // If JS takes > 16ms, you are below 60fps. If > 33ms, below 30fps.
-                jsEl.innerText = jsDuration.toFixed(1);
-                jsEl.className = jsDuration > 20 ? 'val danger' : 'val';
-                frames = 0; lastTime = jsEnd;
+            updateCPU(time) {
+                if (!STRESSORS.cpuDeform) return;
+                
+                for (let m = 0; m < this.meshes.length; m++) {
+                    const mesh = this.meshes[m];
+                    const positions = mesh.geometry.attributes.position.array;
+                    const normals = mesh.geometry.attributes.normal.array;
+                    const basePos = this.basePositions[m];
+                    const count = mesh.geometry.attributes.position.count;
+                    
+                    for (let i = 0; i < count; i++) {
+                        const ix = i * 3, iy = i * 3 + 1, iz = i * 3 + 2;
+                        const bx = basePos[ix], by = basePos[iy], bz = basePos[iz];
+                        const nx = normals[ix], ny = normals[iy], nz = normals[iz];
+                        
+                        let d = Math.sin(bx * 0.05 + time + CONFIG.inputVector.x);
+                        d *= Math.cos(by * 0.05 + time + CONFIG.inputVector.y);
+                        d += Math.sin(bz * 0.1 + time) * 0.5;
+                        const displacement = d * 15.0;
+                        
+                        positions[ix] = bx + (nx * displacement);
+                        positions[iy] = by + (ny * displacement);
+                        positions[iz] = bz + (nz * displacement);
+                    }
+                    
+                    mesh.geometry.attributes.position.needsUpdate = true;
+                    mesh.rotation.y += 0.002;
+                    mesh.rotation.x += 0.001;
+                }
             }
-
-            renderer.render(scene, camera);
+            
+            dispose() {
+                this.meshes.forEach(mesh => {
+                    this.scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+                this.meshes = [];
+                this.geometries = [];
+                this.materials = [];
+                this.basePositions = [];
+            }
+            
+            getVertexCount() {
+                return this.meshes.reduce((sum, mesh) => sum + mesh.geometry.attributes.position.count, 0);
+            }
         }
-        animate();
 
-        // --- INPUT LISTENERS (Data Gathering) ---
-        // Gyro (Mobile)
-        window.addEventListener('deviceorientation', (e) => {
-            if(e.beta) {
-                 // Normalize roughly to -2 to +2 range
-                 INPUT_VECTOR.y = e.beta / 20;  // Tilt forward/back
-                 INPUT_VECTOR.x = e.gamma / 20; // Tilt left/right
+        class ParticleStressor {
+            constructor(scene) {
+                this.scene = scene;
+                this.systems = [];
             }
-        });
-        // Mouse (Desktop fallback)
-        window.addEventListener('mousemove', (e) => {
-            // Normalize to -2 to +2 range based on screen center
-            INPUT_VECTOR.x = (e.clientX / window.innerWidth - 0.5) * 4;
-            INPUT_VECTOR.y = (e.clientY / window.innerHeight - 0.5) * 4;
+            
+            createGPUParticles(count) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(count * 3);
+                const velocities = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+                
+                for (let i = 0; i < count; i++) {
+                    const i3 = i * 3;
+                    positions[i3] = (Math.random() - 0.5) * 200;
+                    positions[i3 + 1] = (Math.random() - 0.5) * 200;
+                    positions[i3 + 2] = (Math.random() - 0.5) * 200;
+                    
+                    velocities[i3] = (Math.random() - 0.5) * 2;
+                    velocities[i3 + 1] = (Math.random() - 0.5) * 2;
+                    velocities[i3 + 2] = (Math.random() - 0.5) * 2;
+                    
+                    const color = Math.random() > 0.66 ? COLORS.particle1 : Math.random() > 0.33 ? COLORS.particle2 : COLORS.particle3;
+                    colors[i3] = color.r;
+                    colors[i3 + 1] = color.g;
+                    colors[i3 + 2] = color.b;
+                }
+                
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                
+                const material = new THREE.PointsMaterial({
+                    size: 1.5,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const points = new THREE.Points(geometry, material);
+                this.scene.add(points);
+                
+                this.systems.push({ points, velocities, type: 'gpu' });
+            }
+            
+            createCPUParticles(count) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(count * 3);
+                const velocities = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+                const sizes = new Float32Array(count);
+                
+                for (let i = 0; i < count; i++) {
+                    const i3 = i * 3;
+                    positions[i3] = (Math.random() - 0.5) * 150;
+                    positions[i3 + 1] = (Math.random() - 0.5) * 150;
+                    positions[i3 + 2] = (Math.random() - 0.5) * 150;
+                    
+                    velocities[i3] = (Math.random() - 0.5) * 3;
+                    velocities[i3 + 1] = (Math.random() - 0.5) * 3;
+                    velocities[i3 + 2] = (Math.random() - 0.5) * 3;
+                    
+                    const color = Math.random() > 0.5 ? COLORS.low : COLORS.high;
+                    colors[i3] = color.r;
+                    colors[i3 + 1] = color.g;
+                    colors[i3 + 2] = color.b;
+                    
+                    sizes[i] = Math.random() * 3 + 1;
+                }
+                
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+                
+                const material = new THREE.PointsMaterial({
+                    size: 2,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.7,
+                    blending: THREE.AdditiveBlending
+                });
+                
+                const points = new THREE.Points(geometry, material);
+                this.scene.add(points);
+                
+                this.systems.push({ points, velocities, type: 'cpu', sizes });
+            }
+            
+            update(time) {
+                for (const sys of this.systems) {
+                    if (sys.type === 'cpu') {
+                        const positions = sys.points.geometry.attributes.position.array;
+                        const colors = sys.points.geometry.attributes.color.array;
+                        
+                        for (let i = 0; i < positions.length / 3; i++) {
+                            const i3 = i * 3;
+                            
+                            // Physics
+                            positions[i3] += sys.velocities[i3] * 0.5;
+                            positions[i3 + 1] += sys.velocities[i3 + 1] * 0.5;
+                            positions[i3 + 2] += sys.velocities[i3 + 2] * 0.5;
+                            
+                            // Attraction to center
+                            positions[i3] *= 0.999;
+                            positions[i3 + 1] *= 0.999;
+                            positions[i3 + 2] *= 0.999;
+                            
+                            // Reset if too far
+                            if (Math.abs(positions[i3]) > 100) positions[i3] *= 0.9;
+                            if (Math.abs(positions[i3 + 1]) > 100) positions[i3 + 1] *= 0.9;
+                            if (Math.abs(positions[i3 + 2]) > 100) positions[i3 + 2] *= 0.9;
+                            
+                            // Color cycling
+                            colors[i3] = 0.5 + 0.5 * Math.sin(time + positions[i3] * 0.1);
+                            colors[i3 + 1] = 0.5 + 0.5 * Math.cos(time + positions[i3 + 1] * 0.1);
+                            colors[i3 + 2] = 0.5 + 0.5 * Math.sin(time * 1.3 + positions[i3 + 2] * 0.1);
+                        }
+                        
+                        sys.points.geometry.attributes.position.needsUpdate = true;
+                        sys.points.geometry.attributes.color.needsUpdate = true;
+                    }
+                    
+                    // Rotate entire system
+                    sys.points.rotation.y += 0.001;
+                }
+            }
+            
+            dispose() {
+                this.systems.forEach(sys => {
+                    this.scene.remove(sys.points);
+                    sys.points.geometry.dispose();
+                    sys.points.material.dispose();
+                });
+                this.systems = [];
+            }
+            
+            getVertexCount() {
+                return this.systems.reduce((sum, sys) => sum + sys.points.geometry.attributes.position.count, 0);
+            }
+        }
+
+        class PhysicsStressor {
+            constructor(scene) {
+                this.scene = scene;
+                this.clothPoints = [];
+                this.softBodies = [];
+            }
+            
+            createCloth() {
+                const segments = 50;
+                const size = 60;
+                const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+                
+                const positions = geometry.attributes.position.array.clone();
+                const velocities = new Float32Array(positions.length);
+                
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x00ffff,
+                    wireframe: true,
+                    side: THREE.DoubleSide
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.rotation.x = -Math.PI / 3;
+                mesh.position.y = 30;
+                this.scene.add(mesh);
+                
+                this.clothPoints.push({ mesh, positions, velocities, segments });
+            }
+            
+            createSoftBody() {
+                const geometry = new THREE.IcosahedronGeometry(20, 3);
+                const basePositions = Float32Array.from(geometry.attributes.position.array);
+                const velocities = new Float32Array(geometry.attributes.position.count * 3);
+                
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xff00ff,
+                    wireframe: true
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(-50, 0, 0);
+                this.scene.add(mesh);
+                
+                this.softBodies.push({ mesh, basePositions, velocities });
+            }
+            
+            update(time) {
+                // Cloth simulation
+                if (STRESSORS.verletCloth) {
+                    for (const cloth of this.clothPoints) {
+                        const positions = cloth.mesh.geometry.attributes.position.array;
+                        const segments = cloth.segments;
+                        
+                        for (let i = 0; i < positions.length / 3; i++) {
+                            const i3 = i * 3;
+                            
+                            // Skip top row (pinned)
+                            if (Math.floor(i / (segments + 1)) === 0) continue;
+                            
+                            // Verlet integration
+                            const oldX = positions[i3];
+                            const oldY = positions[i3 + 1];
+                            const oldZ = positions[i3 + 2];
+                            
+                            const vx = (positions[i3] - cloth.positions[i3]) * 0.98;
+                            const vy = (positions[i3 + 1] - cloth.positions[i3 + 1]) * 0.98;
+                            const vz = (positions[i3 + 2] - cloth.positions[i3 + 2]) * 0.98;
+                            
+                            cloth.positions[i3] = oldX;
+                            cloth.positions[i3 + 1] = oldY;
+                            cloth.positions[i3 + 2] = oldZ;
+                            
+                            positions[i3] += vx;
+                            positions[i3 + 1] += vy - 0.1; // Gravity
+                            positions[i3 + 2] += vz;
+                        }
+                        
+                        cloth.mesh.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+                
+                // Soft body simulation
+                if (STRESSORS.softBody) {
+                    for (const body of this.softBodies) {
+                        const positions = body.mesh.geometry.attributes.position.array;
+                        const basePos = body.basePositions;
+                        
+                        for (let i = 0; i < positions.length / 3; i++) {
+                            const i3 = i * 3;
+                            
+                            // Pulse effect
+                            const pulse = Math.sin(time * 3 + i * 0.1) * 2 + 1;
+                            
+                            positions[i3] = basePos[i3] * pulse;
+                            positions[i3 + 1] = basePos[i3 + 1] * pulse;
+                            positions[i3 + 2] = basePos[i3 + 2] * pulse;
+                        }
+                        
+                        body.mesh.rotation.x += 0.01;
+                        body.mesh.rotation.y += 0.01;
+                        body.mesh.geometry.attributes.position.needsUpdate = true;
+                    }
+                }
+            }
+            
+            dispose() {
+                this.clothPoints.forEach(c => {
+                    this.scene.remove(c.mesh);
+                    c.mesh.geometry.dispose();
+                    c.mesh.material.dispose();
+                });
+                this.softBodies.forEach(b => {
+                    this.scene.remove(b.mesh);
+                    b.mesh.geometry.dispose();
+                    b.mesh.material.dispose();
+                });
+                this.clothPoints = [];
+                this.softBodies = [];
+            }
+            
+            getVertexCount() {
+                let count = 0;
+                this.clothPoints.forEach(c => count += c.mesh.geometry.attributes.position.count);
+                this.softBodies.forEach(b => count += b.mesh.geometry.attributes.position.count);
+                return count;
+            }
+        }
+
+        class WorkerStressor {
+            constructor() {
+                this.workers = [];
+                this.activeTasks = 0;
+            }
+            
+            createWorkers(count) {
+                for (let i = 0; i < count; i++) {
+                    const worker = new Worker(workerUrl);
+                    worker.onmessage = (e) => {
+                        if (e.data.type === 'verticesCalculated' || e.data.type === 'physicsComplete') {
+                            this.activeTasks--;
+                        }
+                    };
+                    this.workers.push(worker);
+                }
+            }
+            
+            stress(geometry) {
+                if (this.workers.length === 0) return;
+                
+                const positions = geometry.attributes.position.array;
+                const normals = geometry.attributes.normal.array;
+                const count = geometry.attributes.position.count;
+                
+                this.workers.forEach((worker, index) => {
+                    const start = Math.floor(index * count / this.workers.length);
+                    const end = Math.floor((index + 1) * count / this.workers.length);
+                    const subCount = end - start;
+                    
+                    const subPositions = positions.slice(start * 3, end * 3);
+                    const subNormals = normals.slice(start * 3, end * 3);
+                    
+                    worker.postMessage({
+                        type: 'calculateVertices',
+                        data: { positions: subPositions, normals: subNormals, time: TIME, input: CONFIG.inputVector, count: subCount }
+                    });
+                    this.activeTasks++;
+                });
+            }
+            
+            heavyComputation(iterations = 35) {
+                this.workers.forEach(worker => {
+                    worker.postMessage({
+                        type: 'heavyComputation',
+                        data: { iterations }
+                    });
+                });
+            }
+            
+            dispose() {
+                this.workers.forEach(w => w.terminate());
+                this.workers = [];
+            }
+        }
+
+        class AudioStressor {
+            constructor() {
+                this.context = null;
+                this.oscillators = [];
+                this.gainNodes = [];
+                this.analyser = null;
+            }
+            
+            init() {
+                if (this.context) return;
+                
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.analyser = this.context.createAnalyser();
+                this.analyser.fftSize = 2048;
+                this.analyser.connect(this.context.destination);
+            }
+            
+            createOscillators(count) {
+                this.init();
+                
+                for (let i = 0; i < count; i++) {
+                    const osc = this.context.createOscillator();
+                    const gain = this.context.createGain();
+                    
+                    osc.type = ['sine', 'square', 'sawtooth', 'triangle'][i % 4];
+                    osc.frequency.value = 100 + (i * 5);
+                    
+                    gain.gain.value = 0.01;
+                    
+                    osc.connect(gain);
+                    gain.connect(this.analyser);
+                    
+                    osc.start();
+                    
+                    this.oscillators.push(osc);
+                    this.gainNodes.push(gain);
+                }
+            }
+            
+            update(time) {
+                // Modulate frequencies
+                this.oscillators.forEach((osc, i) => {
+                    osc.frequency.value = 100 + (i * 10) + Math.sin(time + i) * 50;
+                    this.gainNodes[i].gain.value = 0.01 + Math.sin(time * 2 + i * 0.5) * 0.005;
+                });
+            }
+            
+            dispose() {
+                this.oscillators.forEach(osc => osc.stop());
+                this.oscillators = [];
+                this.gainNodes = [];
+                if (this.context) {
+                    this.context.close();
+                    this.context = null;
+                }
+            }
+        }
+
+        class MemoryStressor {
+            constructor() {
+                this.buffers = [];
+                this.objects = [];
+            }
+            
+            allocate() {
+                // Allocate large buffers
+                for (let i = 0; i < 100; i++) {
+                    const size = 1024 * 1024 * 5; // 5MB buffers
+                    this.buffers.push(new ArrayBuffer(size));
+                    this.buffers.push(new Float32Array(size / 4));
+                }
+                
+                // Create objects
+                for (let i = 0; i < 10000; i++) {
+                    this.objects.push({
+                        data: new Array(100).fill(Math.random()),
+                        nested: { deep: { value: Math.random() } }
+                    });
+                }
+            }
+            
+            deallocate() {
+                this.buffers = [];
+                this.objects = [];
+            }
+            
+            cycle() {
+                this.deallocate();
+                this.allocate();
+            }
+        }
+
+        class DOMStressor {
+            constructor() {
+                this.elements = [];
+                this.container = null;
+                this.canvas2D = null;
+                this.ctx2D = null;
+            }
+            
+            createContainer() {
+                this.container = document.createElement('div');
+                this.container.style.cssText = 'position:fixed;top:0;right:0;width:300px;height:90vh;overflow:hidden;z-index:-1;';
+                document.body.appendChild(this.container);
+            }
+            
+            createElements() {
+                if (!this.container) this.createContainer();
+                
+                for (let i = 0; i < 1000; i++) {
+                    const el = document.createElement('div');
+                    el.style.cssText = `
+                        position:absolute;
+                        left:${Math.random() * 280}px;
+                        top:${Math.random() * 80}vh;
+                        width:${10 + Math.random() * 20}px;
+                        height:${10 + Math.random() * 20}px;
+                        background:hsl(${Math.random() * 360}, 70%, 50%);
+                        border-radius:${Math.random() * 50}%;
+                        transition:all 0.1s;
+                    `;
+                    this.container.appendChild(el);
+                    this.elements.push(el);
+                }
+            }
+            
+            createCanvas2D() {
+                this.canvas2D = document.createElement('canvas');
+                this.canvas2D.style.cssText = 'position:fixed;bottom:0;left:320px;z-index:-1;';
+                this.canvas2D.width = 500;
+                this.canvas2D.height = 500;
+                document.body.appendChild(this.canvas2D);
+                this.ctx2D = this.canvas2D.getContext('2d');
+            }
+            
+            update(time) {
+                // DOM thrashing
+                if (STRESSORS.domThrashing) {
+                    this.elements.forEach((el, i) => {
+                        // Force reflow
+                        const height = el.offsetHeight;
+                        
+                        // Write
+                        el.style.transform = `translate(${Math.sin(time + i) * 20}px, ${Math.cos(time + i * 0.5) * 20}px)`;
+                        el.style.backgroundColor = `hsl(${(time * 50 + i * 10) % 360}, 70%, 50%)`;
+                        el.style.opacity = 0.5 + Math.sin(time + i) * 0.5;
+                    });
+                }
+                
+                // Canvas 2D stress
+                if (STRESSORS.canvas2D && this.ctx2D) {
+                    const ctx = this.ctx2D;
+                    
+                    for (let i = 0; i < 1000; i++) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            Math.sin(time + i * 0.1) * 200 + 250,
+                            Math.cos(time + i * 0.1) * 200 + 250,
+                            2 + Math.sin(time * 2 + i) * 2,
+                            0, Math.PI * 2
+                        );
+                        ctx.fillStyle = `hsl(${(time * 100 + i) % 360}, 70%, 50%)`;
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            dispose() {
+                this.elements.forEach(el => el.remove());
+                this.elements = [];
+                if (this.container) {
+                    this.container.remove();
+                    this.container = null;
+                }
+                if (this.canvas2D) {
+                    this.canvas2D.remove();
+                    this.canvas2D = null;
+                    this.ctx2D = null;
+                }
+            }
+        }
+
+        // ============================================
+        // MAIN APP
+        // ============================================
+        
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 200;
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.3;
+        
+        // Initialize stressors
+        const geometryStressor = new GeometryStressor(scene);
+        const particleStressor = new ParticleStressor(scene);
+        const physicsStressor = new PhysicsStressor(scene);
+        const workerStressor = new WorkerStressor();
+        const audioStressor = new AudioStressor();
+        const memoryStressor = new MemoryStressor();
+        const domStressor = new DOMStressor();
+        
+        // ============================================
+        // UI HANDLERS
+        // ============================================
+        
+        function updateStressorCount() {
+            activeStressors = Object.values(STRESSORS).filter(v => v).length;
+            document.getElementById('stressor-count').textContent = `${activeStressors} Stressors Active`;
+            document.getElementById('warning-box').classList.toggle('visible', activeStressors >= 10);
+            
+            const loadPercent = Math.min(100, (activeStressors / 20) * 100);
+            document.getElementById('load-bar').style.width = `${loadPercent}%`;
+        }
+        
+        function rebuildScene() {
+            geometryStressor.dispose();
+            particleStressor.dispose();
+            physicsStressor.dispose();
+            
+            // Geometry
+            if (STRESSORS.multiSphere) {
+                geometryStressor.createSphere(new THREE.Vector3(0, 0, 0), 1);
+                geometryStressor.createSphere(new THREE.Vector3(80, 20, -50), 0.6);
+                geometryStressor.createSphere(new THREE.Vector3(-80, -20, 50), 0.7);
+            } else {
+                geometryStressor.createSphere(new THREE.Vector3(0, 0, 0), 1);
+            }
+            
+            if (STRESSORS.torusKnot) {
+                geometryStressor.createTorusKnot(new THREE.Vector3(100, 0, 0));
+            }
+            
+            if (STRESSORS.icosahedron) {
+                geometryStressor.createIcosahedron(new THREE.Vector3(-100, 0, 0));
+            }
+            
+            // Particles
+            if (STRESSORS.gpuParticles) {
+                particleStressor.createGPUParticles(CONFIG.particleCount);
+            }
+            
+            if (STRESSORS.cpuParticles) {
+                particleStressor.createCPUParticles(CONFIG.particleCount);
+            }
+            
+            if (STRESSORS.particleTrails) {
+                particleStressor.createGPUParticles(CONFIG.particleCount / 2);
+            }
+            
+            // Physics
+            if (STRESSORS.verletCloth) {
+                physicsStressor.createCloth();
+            }
+            
+            if (STRESSORS.softBody) {
+                physicsStressor.createSoftBody();
+            }
+            
+            // Workers
+            workerStressor.dispose();
+            if (STRESSORS.webWorkers) {
+                workerStressor.createWorkers(CONFIG.workerCount);
+            }
+            
+            // Audio
+            audioStressor.dispose();
+            if (STRESSORS.oscillatorBank) {
+                audioStressor.createOscillators(CONFIG.oscillatorCount);
+            }
+            
+            // Memory
+            if (STRESSORS.memoryAlloc) {
+                memoryStressor.allocate();
+            } else {
+                memoryStressor.deallocate();
+            }
+            
+            // DOM
+            domStressor.dispose();
+            if (STRESSORS.domThrashing) {
+                domStressor.createElements();
+            }
+            
+            if (STRESSORS.canvas2D) {
+                domStressor.createCanvas2D();
+            }
+            
+            updateStressorCount();
+        }
+        
+        // Toggle buttons
+        document.querySelectorAll('.toggle-btn[data-stressor]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const stressor = btn.dataset.stressor;
+                STRESSORS[stressor] = !STRESSORS[stressor];
+                btn.classList.toggle('active', STRESSORS[stressor]);
+                btn.classList.toggle('active-danger', STRESSORS[stressor] && (stressor === 'cpuDeform' || stressor === 'cpuParticles' || stressor === 'softBody' || stressor === 'memoryAlloc' || stressor === 'domThrashing'));
+                btn.classList.toggle('active-warning', STRESSORS[stressor] && stressor === 'bloom');
+                rebuildScene();
+            });
         });
         
-        // --- UI CONTROLS ---
-        const cpuBtn = document.getElementById('cpu-btn');
-        const gpuBtn = document.getElementById('gpu-btn');
-        const slider = document.getElementById('density-slider');
-
-        cpuBtn.onclick = () => { 
-            MODE = 'cpu'; 
-            cpuBtn.classList.add('active-cpu'); gpuBtn.classList.remove('active-gpu'); 
-            rebuildMesh(); 
-        };
-        gpuBtn.onclick = () => { 
-            MODE = 'gpu'; 
-            gpuBtn.classList.add('active-gpu'); cpuBtn.classList.remove('active-cpu'); 
-            rebuildMesh(); 
-        };
-        slider.oninput = (e) => {
-            SEGMENTS = parseInt(e.target.value);
-            rebuildMesh();
-        }
-        window.onresize = () => {
+        // Sliders
+        document.getElementById('geo-density').addEventListener('input', (e) => {
+            CONFIG.geoDensity = parseInt(e.target.value);
+            rebuildScene();
+        });
+        
+        document.getElementById('particle-count').addEventListener('input', (e) => {
+            CONFIG.particleCount = parseInt(e.target.value);
+            rebuildScene();
+        });
+        
+        document.getElementById('worker-count').addEventListener('input', (e) => {
+            CONFIG.workerCount = parseInt(e.target.value);
+            rebuildScene();
+        });
+        
+        document.getElementById('oscillator-count').addEventListener('input', (e) => {
+            CONFIG.oscillatorCount = parseInt(e.target.value);
+            rebuildScene();
+        });
+        
+        // Presets
+        document.getElementById('preset-laggy').addEventListener('click', () => {
+            Object.keys(STRESSORS).forEach(k => STRESSORS[k] = false);
+            STRESSORS.multiSphere = true;
+            STRESSORS.complexShaders = true;
+            STRESSORS.gpuParticles = true;
+            STRESSORS.verletCloth = true;
+            STRESSORS.webWorkers = true;
+            STRESSORS.bloom = true;
+            STRESSORS.domThrashing = true;
+            
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                const stressor = btn.dataset.stressor;
+                btn.classList.toggle('active', STRESSORS[stressor]);
+                btn.classList.toggle('active-danger', STRESSORS[stressor] && ['cpuDeform', 'cpuParticles', 'softBody', 'memoryAlloc', 'domThrashing'].includes(stressor));
+                btn.classList.toggle('active-warning', STRESSORS[stressor] && stressor === 'bloom');
+            });
+            
+            CONFIG.geoDensity = 300;
+            CONFIG.particleCount = 30000;
+            document.getElementById('geo-density').value = 300;
+            document.getElementById('particle-count').value = 30000;
+            
+            rebuildScene();
+        });
+        
+        document.getElementById('preset-freeze').addEventListener('click', () => {
+            Object.keys(STRESSORS).forEach(k => STRESSORS[k] = false);
+            STRESSORS.multiSphere = true;
+            STRESSORS.torusKnot = true;
+            STRESSORS.cpuDeform = true;
+            STRESSORS.cpuParticles = true;
+            STRESSORS.softBody = true;
+            STRESSORS.collision = true;
+            STRESSORS.webWorkers = true;
+            STRESSORS.workerPool = true;
+            STRESSORS.complexShaders = true;
+            STRESSORS.bloom = true;
+            STRESSORS.chromatic = true;
+            STRESSORS.memoryAlloc = true;
+            STRESSORS.domThrashing = true;
+            
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                const stressor = btn.dataset.stressor;
+                btn.classList.toggle('active', STRESSORS[stressor]);
+                btn.classList.toggle('active-danger', STRESSORS[stressor] && ['cpuDeform', 'cpuParticles', 'softBody', 'memoryAlloc', 'domThrashing'].includes(stressor));
+                btn.classList.toggle('active-warning', STRESSORS[stressor] && stressor === 'bloom');
+            });
+            
+            CONFIG.geoDensity = 400;
+            CONFIG.particleCount = 50000;
+            CONFIG.workerCount = 8;
+            document.getElementById('geo-density').value = 400;
+            document.getElementById('particle-count').value = 50000;
+            document.getElementById('worker-count').value = 8;
+            
+            rebuildScene();
+        });
+        
+        document.getElementById('preset-crash').addEventListener('click', () => {
+            Object.keys(STRESSORS).forEach(k => STRESSORS[k] = true);
+            
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                const stressor = btn.dataset.stressor;
+                btn.classList.toggle('active', STRESSORS[stressor]);
+                btn.classList.toggle('active-danger', STRESSORS[stressor] && ['cpuDeform', 'cpuParticles', 'softBody', 'memoryAlloc', 'domThrashing'].includes(stressor));
+                btn.classList.toggle('active-warning', STRESSORS[stressor] && stressor === 'bloom');
+            });
+            
+            CONFIG.geoDensity = 500;
+            CONFIG.particleCount = 100000;
+            CONFIG.workerCount = 16;
+            CONFIG.oscillatorCount = 500;
+            document.getElementById('geo-density').value = 500;
+            document.getElementById('particle-count').value = 100000;
+            document.getElementById('worker-count').value = 16;
+            document.getElementById('oscillator-count').value = 500;
+            
+            rebuildScene();
+        });
+        
+        document.getElementById('emergency-stop').addEventListener('click', () => {
+            Object.keys(STRESSORS).forEach(k => STRESSORS[k] = false);
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active', 'active-danger', 'active-warning');
+            });
+            rebuildScene();
+        });
+        
+        // Input handlers
+        window.addEventListener('deviceorientation', (e) => {
+            if (e.beta) {
+                CONFIG.inputVector.y = e.beta / 20;
+                CONFIG.inputVector.x = e.gamma / 20;
+            }
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            CONFIG.inputVector.x = (e.clientX / window.innerWidth - 0.5) * 4;
+            CONFIG.inputVector.y = (e.clientY / window.innerHeight - 0.5) * 4;
+        });
+        
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        };
+        });
+        
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        
+        let lastTime = performance.now();
+        let frames = 0;
+        let lastMemCheck = 0;
+        
+        const fpsEl = document.getElementById('fps-val');
+        const frameEl = document.getElementById('frame-val');
+        const jsEl = document.getElementById('js-val');
+        const vertsEl = document.getElementById('verts-val');
+        const drawEl = document.getElementById('draw-val');
+        const workerEl = document.getElementById('worker-val');
+        const audioEl = document.getElementById('audio-val');
+        const memEl = document.getElementById('mem-val');
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            TIME += 0.02;
+            controls.update();
+            
+            const jsStart = performance.now();
+            
+            // Update stressors
+            if (STRESSORS.cpuDeform) {
+                geometryStressor.updateCPU(TIME);
+            } else {
+                geometryStressor.update(TIME);
+            }
+            
+            particleStressor.update(TIME);
+            physicsStressor.update(TIME);
+            
+            if (STRESSORS.webWorkers && geometryStressor.meshes.length > 0) {
+                geometryStressor.meshes.forEach(mesh => {
+                    workerStressor.stress(mesh.geometry);
+                });
+                if (STRESSORS.workerPool) {
+                    workerStressor.heavyComputation(35);
+                }
+            }
+            
+            if (STRESSORS.oscillatorBank) {
+                audioStressor.update(TIME);
+            }
+            
+            if (STRESSORS.memoryAlloc) {
+                if (Math.random() < 0.02) {
+                    memoryStressor.cycle();
+                }
+            }
+            
+            domStressor.update(TIME);
+            
+            const jsEnd = performance.now();
+            const jsDuration = jsEnd - jsStart;
+            
+            // Stats
+            frames++;
+            if (jsEnd - lastTime >= 1000) {
+                fpsEl.textContent = frames;
+                frameEl.textContent = (1000 / frames).toFixed(1);
+                jsEl.textContent = jsDuration.toFixed(1);
+                jsEl.className = jsDuration > 20 ? 'val danger' : jsDuration > 10 ? 'val warning' : 'val good';
+                frames = 0;
+                lastTime = jsEnd;
+                
+                // Memory check (Chrome only)
+                if (performance.memory && jsEnd - lastMemCheck > 2000) {
+                    const mb = (performance.memory.usedJSHeapSize / 1048576).toFixed(0);
+                    memEl.textContent = `${mb} MB`;
+                    lastMemCheck = jsEnd;
+                }
+            }
+            
+            // Vertex count
+            const totalVerts = geometryStressor.getVertexCount() + particleStressor.getVertexCount() + physicsStressor.getVertexCount();
+            vertsEl.textContent = totalVerts.toLocaleString();
+            
+            // Draw calls
+            drawEl.textContent = renderer.info.render.calls;
+            
+            // Worker count
+            workerEl.textContent = workerStressor.workers.length;
+            
+            // Audio nodes
+            audioEl.textContent = audioStressor.oscillators.length;
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initial build
+        rebuildScene();
+        
+        // Start animation
+        animate();
     </script>
 </body>
 </html>
