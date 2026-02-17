@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU vs GPU Stress Test</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* UI Overlay */
+        #ui-container {
+            position: absolute; top: 20px; right: 20px; width: 280px;
+            background: rgba(0, 0, 0, 0.85); padding: 20px; border-radius: 12px;
+            backdrop-filter: blur(5px); border: 1px solid #333;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            user-select: none;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 18px; color: #00d2ff; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #ccc; }
+        .stat-val { font-weight: bold; color: #fff; font-family: monospace; }
+        .stat-val.good { color: #00ff88; }
+        .stat-val.bad { color: #ff4444; }
+
+        /* Toggle Switch */
+        .mode-switch {
+            display: flex; background: #222; border-radius: 8px; padding: 4px; margin: 15px 0;
+            cursor: pointer; border: 1px solid #444;
+        }
+        .mode-opt {
+            flex: 1; text-align: center; padding: 8px; font-size: 14px; border-radius: 6px;
+            transition: all 0.2s ease; font-weight: bold;
+        }
+        .mode-opt.active { background: #00d2ff; color: #000; box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3); }
+
+        /* Slider */
+        .control-group { margin-top: 15px; }
+        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
+        input[type=range] { width: 100%; accent-color: #00d2ff; }
+
+        #gyro-status { margin-top: 10px; font-size: 11px; color: #666; text-align: right; font-style: italic; }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h2>System Load Test</h2>
+        
+        <div class="stat-row">
+            <span>FPS:</span>
+            <span id="fps-counter" class="stat-val">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Vertices:</span>
+            <span id="vertex-counter" class="stat-val">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Render Time:</span>
+            <span id="ms-counter" class="stat-val">0 ms</span>
+        </div>
+
+        <div class="mode-switch" id="mode-toggle">
+            <div class="mode-opt active" data-mode="cpu">CPU MODE</div>
+            <div class="mode-opt" data-mode="gpu">GPU MODE</div>
+        </div>
+
+        <div class="control-group">
+            <label>Complexity (Grid Density)</label>
+            <input type="range" id="density-slider" min="50" max="400" value="150" step="10">
+        </div>
+
+        <div id="gyro-status">Waiting for input...</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- GLOBAL SETTINGS ---
+        let SEGMENTS = 150; // Initial density
+        const SIZE = 100;
+        let MODE = 'cpu'; // 'cpu' or 'gpu'
+        let MOUSE = { x: 0, y: 0 };
+        let TIME = 0;
+
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.Fog(0x050505, 20, 150);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 40, 60);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // --- CONTROLS ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+
+        // --- GEOMETRY & MATERIALS ---
+        let geometry, mesh;
+        
+        // 1. CPU Material: Standard material where we manually paint vertex colors
+        const cpuMaterial = new THREE.MeshPhongMaterial({
+            side: THREE.DoubleSide,
+            vertexColors: true,
+            wireframe: false,
+            shininess: 50,
+            specular: 0x222222
+        });
+
+        // 2. GPU Material: Custom Shader (Vertex Shader does the heavy lifting)
+        const gpuMaterial = new THREE.ShaderMaterial({
+            side: THREE.DoubleSide,
+            wireframe: false,
+            uniforms: {
+                uTime: { value: 0 },
+                uTilt: { value: new THREE.Vector2(0, 0) },
+                uColorLow: { value: new THREE.Color(0x0022ff) }, // Blue
+                uColorHigh: { value: new THREE.Color(0xff2200) } // Red
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform vec2 uTilt;
+                varying float vHeight;
+
+                // Simple pseudo-random noise function
+                float noise(vec2 p) {
+                    return sin(p.x * 10.0) * sin(p.y * 10.0);
+                }
+
+                void main() {
+                    vec3 pos = position;
+                    
+                    // THE SAME MATH AS CPU, BUT RUNNING ON GPU
+                    float wave1 = sin(pos.x * 0.1 + uTime + (uTilt.x * 5.0));
+                    float wave2 = cos(pos.y * 0.1 + uTime + (uTilt.y * 5.0));
+                    float n = noise(pos.xy * 0.05 + uTime * 0.2);
+                    
+                    float height = (wave1 + wave2 + n) * 4.0;
+                    
+                    pos.z = height; // We displace Z in shader (local space)
+                    vHeight = height; // Pass height to fragment shader for color
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColorLow;
+                uniform vec3 uColorHigh;
+                varying float vHeight;
+
+                void main() {
+                    // Map height (-5 to 5) to 0.0 - 1.0
+                    float t = smoothstep(-5.0, 5.0, vHeight);
+                    
+                    // Mix colors based on height
+                    vec3 color = mix(uColorLow, uColorHigh, t);
+                    
+                    // Add simple lighting fake
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `
+        });
+
+        // --- INITIALIZATION ---
+        function createMesh() {
+            if (mesh) {
+                scene.remove(mesh);
+                geometry.dispose();
+            }
+
+            geometry = new THREE.PlaneGeometry(SIZE, SIZE, SEGMENTS, SEGMENTS);
+            
+            // Add Color Attribute for CPU mode
+            const count = geometry.attributes.position.count;
+            const colors = new Float32Array(count * 3);
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            // Select Material based on Mode
+            mesh = new THREE.Mesh(geometry, MODE === 'cpu' ? cpuMaterial : gpuMaterial);
+            mesh.rotation.x = -Math.PI / 2;
+            scene.add(mesh);
+
+            // Update UI Stats
+            document.getElementById('vertex-counter').innerText = count.toLocaleString();
+        }
+
+        // Lighting (Needed for CPU MeshPhongMaterial)
+        const light = new THREE.PointLight(0xffffff, 1000, 100);
+        light.position.set(0, 50, 0);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        createMesh();
+
+        // --- INPUT HANDLING ---
+        window.addEventListener('mousemove', (e) => {
+            MOUSE.x = (e.clientX / window.innerWidth) * 2 - 1;
+            MOUSE.y = (e.clientY / window.innerHeight) * 2 - 1;
+            document.getElementById('gyro-status').innerText = "Input: Mouse/Touch";
+        });
+
+        window.addEventListener('deviceorientation', (e) => {
+            if(e.beta) {
+                // Normalize roughly
+                MOUSE.y = Math.min(Math.max(e.beta / 45, -1), 1);
+                MOUSE.x = Math.min(Math.max(e.gamma / 45, -1), 1);
+                document.getElementById('gyro-status').innerText = "Input: Gyroscope Active";
+            }
+        });
+
+        // --- CPU PROCESSING LOGIC (The Heavy Part) ---
+        function updateCPU() {
+            const positions = geometry.attributes.position.array;
+            const colors = geometry.attributes.color.array;
+            const count = geometry.attributes.position.count;
+
+            // Loop 40,000+ times per frame in JS (Slow!)
+            for (let i = 0; i < count; i++) {
+                const x = positions[i * 3];     // Local X
+                const y = positions[i * 3 + 1]; // Local Y (Planar)
+
+                // The Math
+                const wave1 = Math.sin(x * 0.1 + TIME + (MOUSE.x * 5));
+                const wave2 = Math.cos(y * 0.1 + TIME + (MOUSE.y * 5));
+                const noise = Math.sin(x * 0.5 + TIME * 0.2) * Math.sin(y * 0.5);
+                
+                const height = (wave1 + wave2 + noise) * 4;
+
+                // Update Height (Z)
+                positions[i * 3 + 2] = height;
+
+                // Heatmap Color Calculation
+                const t = (height + 5) / 10; // Normalize 0-1
+                colors[i * 3] = t;     // R
+                colors[i * 3 + 1] = 0.1; // G
+                colors[i * 3 + 2] = 1 - t; // B
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+        }
+
+        // --- ANIMATION LOOP ---
+        let frames = 0;
+        let lastTime = performance.now();
+        const fpsElem = document.getElementById('fps-counter');
+        const msElem = document.getElementById('ms-counter');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const startFrame = performance.now();
+            TIME += 0.05;
+
+            controls.update();
+
+            // --- MODE SWITCHING LOGIC ---
+            if (MODE === 'cpu') {
+                updateCPU(); // Heavy JS calculation
+            } else {
+                // GPU Mode: Just update 2 numbers, GPU does the rest
+                gpuMaterial.uniforms.uTime.value = TIME;
+                gpuMaterial.uniforms.uTilt.value.set(MOUSE.x, MOUSE.y);
+            }
+
+            renderer.render(scene, camera);
+
+            // --- STATS CALCULATION ---
+            const endFrame = performance.now();
+            const frameTime = endFrame - startFrame;
+            
+            frames++;
+            if (endFrame - lastTime >= 1000) {
+                fpsElem.innerText = frames;
+                msElem.innerText = frameTime.toFixed(2) + " ms";
+                
+                // Color coding stats
+                fpsElem.className = frames < 30 ? "stat-val bad" : "stat-val good";
+                
+                frames = 0;
+                lastTime = endFrame;
+            }
+        }
+
+        animate();
+
+        // --- UI EVENT LISTENERS ---
+        
+        // Mode Toggle
+        document.querySelectorAll('.mode-opt').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // UI Update
+                document.querySelectorAll('.mode-opt').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // Logic Update
+                MODE = e.target.dataset.mode;
+                
+                if (MODE === 'cpu') {
+                    mesh.material = cpuMaterial;
+                    // Reset geometry to flat just in case
+                    createMesh(); 
+                } else {
+                    mesh.material = gpuMaterial;
+                }
+            });
+        });
+
+        // Complexity Slider
+        const slider = document.getElementById('density-slider');
+        slider.addEventListener('input', (e) => {
+            SEGMENTS = parseInt(e.target.value);
+            createMesh(); // Rebuild mesh with new density
+        });
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
