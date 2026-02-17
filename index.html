@@ -2,342 +2,273 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CPU vs GPU Stress Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CPU Meltdown Sphere</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: monospace; touch-action: none; }
+        #ui-panel {
+            position: absolute; top: 10px; left: 10px; 
+            background: rgba(20, 0, 30, 0.8); border: 1px solid #f0f;
+            padding: 15px; border-radius: 8px; pointer-events: auto;
+            box-shadow: 0 0 20px #f0f;
+            width: 220px;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 16px; color: #f0f; text-transform: uppercase; }
+        .stat { font-size: 12px; color: #ccc; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .val { font-weight: bold; color: #fff; }
+        .val.danger { color: #f00; }
         
-        /* UI Overlay */
-        #ui-container {
-            position: absolute; top: 20px; right: 20px; width: 280px;
-            background: rgba(0, 0, 0, 0.85); padding: 20px; border-radius: 12px;
-            backdrop-filter: blur(5px); border: 1px solid #333;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            user-select: none;
-        }
+        /* TOGGLE SWITCH */
+        .toggle-container { display: flex; margin: 15px 0; border: 2px solid #555; border-radius: 4px; overflow: hidden; }
+        .toggle-btn { flex: 1; padding: 10px; text-align: center; background: #222; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .toggle-btn.active-cpu { background: #f00; color: black; box-shadow: inset 0 0 10px #500; }
+        .toggle-btn.active-gpu { background: #0f0; color: black; box-shadow: inset 0 0 10px #050; }
 
-        h2 { margin: 0 0 10px 0; font-size: 18px; color: #00d2ff; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #ccc; }
-        .stat-val { font-weight: bold; color: #fff; font-family: monospace; }
-        .stat-val.good { color: #00ff88; }
-        .stat-val.bad { color: #ff4444; }
-
-        /* Toggle Switch */
-        .mode-switch {
-            display: flex; background: #222; border-radius: 8px; padding: 4px; margin: 15px 0;
-            cursor: pointer; border: 1px solid #444;
-        }
-        .mode-opt {
-            flex: 1; text-align: center; padding: 8px; font-size: 14px; border-radius: 6px;
-            transition: all 0.2s ease; font-weight: bold;
-        }
-        .mode-opt.active { background: #00d2ff; color: #000; box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3); }
-
-        /* Slider */
-        .control-group { margin-top: 15px; }
-        label { display: block; font-size: 12px; color: #888; margin-bottom: 5px; }
-        input[type=range] { width: 100%; accent-color: #00d2ff; }
-
-        #gyro-status { margin-top: 10px; font-size: 11px; color: #666; text-align: right; font-style: italic; }
+        /* SLIDER */
+        input[type=range] { width: 100%; accent-color: #f0f; margin: 10px 0; }
+        label { font-size: 12px; color: #f0f; }
+        #kill-warning { color: #f00; font-size: 10px; text-align: center; display: none; font-weight: bold;}
     </style>
-    
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 </head>
 <body>
-
-    <div id="ui-container">
-        <h2>System Load Test</h2>
+    <div id="ui-panel">
+        <h1>Processing Unit Torture</h1>
+        <div class="stat">FPS: <span id="fps-val" class="val">0</span></div>
+        <div class="stat">Vertices: <span id="verts-val" class="val">0</span></div>
+        <div class="stat">JS Time (ms): <span id="js-val" class="val">0</span></div>
         
-        <div class="stat-row">
-            <span>FPS:</span>
-            <span id="fps-counter" class="stat-val">0</span>
+        <div class="toggle-container">
+            <div id="cpu-btn" class="toggle-btn">CPU (SLOW)</div>
+            <div id="gpu-btn" class="toggle-btn active-gpu">GPU (FAST)</div>
         </div>
-        <div class="stat-row">
-            <span>Vertices:</span>
-            <span id="vertex-counter" class="stat-val">0</span>
-        </div>
-        <div class="stat-row">
-            <span>Render Time:</span>
-            <span id="ms-counter" class="stat-val">0 ms</span>
-        </div>
-
-        <div class="mode-switch" id="mode-toggle">
-            <div class="mode-opt active" data-mode="cpu">CPU MODE</div>
-            <div class="mode-opt" data-mode="gpu">GPU MODE</div>
-        </div>
-
-        <div class="control-group">
-            <label>Complexity (Grid Density)</label>
-            <input type="range" id="density-slider" min="50" max="400" value="150" step="10">
-        </div>
-
-        <div id="gyro-status">Waiting for input...</div>
+        
+        <label>Meltdown Factor (Density)</label>
+        <input type="range" id="density-slider" min="100" max="500" step="50" value="200">
+        <div id="kill-warning">⚠️ MAX SETTING WILL FREEZE DEVICE</div>
     </div>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- GLOBAL SETTINGS ---
-        let SEGMENTS = 150; // Initial density
-        const SIZE = 100;
-        let MODE = 'cpu'; // 'cpu' or 'gpu'
-        let MOUSE = { x: 0, y: 0 };
+        // --- CONFIG ---
+        let SEGMENTS = 200; // Initial density
+        let RADIUS = 50;
+        let MODE = 'gpu'; // Start fast
+        const INPUT_VECTOR = new THREE.Vector2(0, 0); // Holds Gyro/Mouse data once per frame
         let TIME = 0;
+
+        // Color Palette (Vibrant)
+        const COLOR_LOW = new THREE.Color(0x0055ff); // Deep Blue
+        const COLOR_HIGH = new THREE.Color(0xff2200); // Hot Red/Orange
 
         // --- SCENE SETUP ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 20, 150);
-
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 40, 60);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 150;
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // IMPORTANT: On high-DPI mobile screens, this ensures we render max pixels for GPU load
+        renderer.setPixelRatio(window.devicePixelRatio); 
         document.body.appendChild(renderer.domElement);
 
-        // --- CONTROLS ---
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
+        controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
 
-        // --- GEOMETRY & MATERIALS ---
-        let geometry, mesh;
+        // --- MATERIALS ---
         
-        // 1. CPU Material: Standard material where we manually paint vertex colors
-        const cpuMaterial = new THREE.MeshPhongMaterial({
-            side: THREE.DoubleSide,
-            vertexColors: true,
-            wireframe: false,
-            shininess: 50,
-            specular: 0x222222
-        });
-
-        // 2. GPU Material: Custom Shader (Vertex Shader does the heavy lifting)
+        // GPU Shader Material (Parallel Processing)
         const gpuMaterial = new THREE.ShaderMaterial({
-            side: THREE.DoubleSide,
-            wireframe: false,
             uniforms: {
                 uTime: { value: 0 },
-                uTilt: { value: new THREE.Vector2(0, 0) },
-                uColorLow: { value: new THREE.Color(0x0022ff) }, // Blue
-                uColorHigh: { value: new THREE.Color(0xff2200) } // Red
+                uInput: { value: new THREE.Vector2(0, 0) },
+                uColorLow: { value: COLOR_LOW },
+                uColorHigh: { value: COLOR_HIGH }
             },
             vertexShader: `
                 uniform float uTime;
-                uniform vec2 uTilt;
-                varying float vHeight;
-
-                // Simple pseudo-random noise function
-                float noise(vec2 p) {
-                    return sin(p.x * 10.0) * sin(p.y * 10.0);
+                uniform vec2 uInput;
+                varying float vDisplacement; // Pass to fragment shader
+                
+                // Complex math function run on GPU for every vertex
+                float calculateDisplacement(vec3 p) {
+                    // Combine X, Y, Z with Time and Input for complex 3D noise pattern
+                    float d = sin(p.x * 0.05 + uTime + uInput.x);
+                    d *= cos(p.y * 0.05 + uTime + uInput.y);
+                    d += sin(p.z * 0.1 + uTime) * 0.5;
+                    return d * 15.0; // Amplitude (Max displacement +/- 15)
                 }
 
                 void main() {
-                    vec3 pos = position;
-                    
-                    // THE SAME MATH AS CPU, BUT RUNNING ON GPU
-                    float wave1 = sin(pos.x * 0.1 + uTime + (uTilt.x * 5.0));
-                    float wave2 = cos(pos.y * 0.1 + uTime + (uTilt.y * 5.0));
-                    float n = noise(pos.xy * 0.05 + uTime * 0.2);
-                    
-                    float height = (wave1 + wave2 + n) * 4.0;
-                    
-                    pos.z = height; // We displace Z in shader (local space)
-                    vHeight = height; // Pass height to fragment shader for color
-
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    vDisplacement = calculateDisplacement(position);
+                    // Move vertex along its normal vector (outward/inward)
+                    vec3 newPosition = position + (normal * vDisplacement);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
                 }
             `,
             fragmentShader: `
                 uniform vec3 uColorLow;
                 uniform vec3 uColorHigh;
-                varying float vHeight;
-
+                varying float vDisplacement;
                 void main() {
-                    // Map height (-5 to 5) to 0.0 - 1.0
-                    float t = smoothstep(-5.0, 5.0, vHeight);
-                    
-                    // Mix colors based on height
-                    vec3 color = mix(uColorLow, uColorHigh, t);
-                    
-                    // Add simple lighting fake
-                    gl_FragColor = vec4(color, 1.0);
+                    // Map displacement range (-15 to 15) to 0.0 to 1.0 range
+                    float t = smoothstep(-15.0, 15.0, vDisplacement);
+                    // Mix colors precisely based on displacement height
+                    gl_FragColor = vec4(mix(uColorLow, uColorHigh, t), 1.0);
                 }
             `
         });
 
-        // --- INITIALIZATION ---
-        function createMesh() {
-            if (mesh) {
-                scene.remove(mesh);
-                geometry.dispose();
-            }
+        // CPU Material (BasicMaterial makes vertex colors vibrant, ignoring lights)
+        const cpuMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, wireframe: false });
 
-            geometry = new THREE.PlaneGeometry(SIZE, SIZE, SEGMENTS, SEGMENTS);
+        // --- MESH MANAGEMENT ---
+        let mesh, geometry, basePositions;
+
+        function rebuildMesh() {
+            if (mesh) { scene.remove(mesh); geometry.dispose(); }
             
-            // Add Color Attribute for CPU mode
-            const count = geometry.attributes.position.count;
-            const colors = new Float32Array(count * 3);
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            // 1. Create high-density sphere geometry
+            geometry = new THREE.SphereGeometry(RADIUS, SEGMENTS, SEGMENTS);
+            
+            // 2. Store original "base" positions (crucial for CPU calculations)
+            // We need to clone it because we will be overwriting the actual position attribute every frame
+            basePositions = Float32Array.from(geometry.attributes.position.array);
 
-            // Select Material based on Mode
-            mesh = new THREE.Mesh(geometry, MODE === 'cpu' ? cpuMaterial : gpuMaterial);
-            mesh.rotation.x = -Math.PI / 2;
+            // 3. Add color attribute for CPU mode
+            const count = geometry.attributes.position.count;
+            geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+
+            // 4. Assign material based on current mode
+            mesh = new THREE.Mesh(geometry, MODE === 'gpu' ? gpuMaterial : cpuMaterial);
             scene.add(mesh);
 
-            // Update UI Stats
-            document.getElementById('vertex-counter').innerText = count.toLocaleString();
+            // Update UI
+            document.getElementById('verts-val').innerText = count.toLocaleString();
+            document.getElementById('kill-warning').style.display = SEGMENTS >= 400 ? 'block' : 'none';
         }
 
-        // Lighting (Needed for CPU MeshPhongMaterial)
-        const light = new THREE.PointLight(0xffffff, 1000, 100);
-        light.position.set(0, 50, 0);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
+        rebuildMesh(); // Initial build
 
-        createMesh();
-
-        // --- INPUT HANDLING ---
-        window.addEventListener('mousemove', (e) => {
-            MOUSE.x = (e.clientX / window.innerWidth) * 2 - 1;
-            MOUSE.y = (e.clientY / window.innerHeight) * 2 - 1;
-            document.getElementById('gyro-status').innerText = "Input: Mouse/Touch";
-        });
-
-        window.addEventListener('deviceorientation', (e) => {
-            if(e.beta) {
-                // Normalize roughly
-                MOUSE.y = Math.min(Math.max(e.beta / 45, -1), 1);
-                MOUSE.x = Math.min(Math.max(e.gamma / 45, -1), 1);
-                document.getElementById('gyro-status').innerText = "Input: Gyroscope Active";
-            }
-        });
-
-        // --- CPU PROCESSING LOGIC (The Heavy Part) ---
-        function updateCPU() {
-            const positions = geometry.attributes.position.array;
-            const colors = geometry.attributes.color.array;
-            const count = geometry.attributes.position.count;
-
-            // Loop 40,000+ times per frame in JS (Slow!)
-            for (let i = 0; i < count; i++) {
-                const x = positions[i * 3];     // Local X
-                const y = positions[i * 3 + 1]; // Local Y (Planar)
-
-                // The Math
-                const wave1 = Math.sin(x * 0.1 + TIME + (MOUSE.x * 5));
-                const wave2 = Math.cos(y * 0.1 + TIME + (MOUSE.y * 5));
-                const noise = Math.sin(x * 0.5 + TIME * 0.2) * Math.sin(y * 0.5);
-                
-                const height = (wave1 + wave2 + noise) * 4;
-
-                // Update Height (Z)
-                positions[i * 3 + 2] = height;
-
-                // Heatmap Color Calculation
-                const t = (height + 5) / 10; // Normalize 0-1
-                colors[i * 3] = t;     // R
-                colors[i * 3 + 1] = 0.1; // G
-                colors[i * 3 + 2] = 1 - t; // B
-            }
-
-            geometry.attributes.position.needsUpdate = true;
-            geometry.attributes.color.needsUpdate = true;
-        }
-
-        // --- ANIMATION LOOP ---
-        let frames = 0;
-        let lastTime = performance.now();
-        const fpsElem = document.getElementById('fps-counter');
-        const msElem = document.getElementById('ms-counter');
+        // --- THE BATTLEFIELD (Animation Loop) ---
+        let lastTime = performance.now(); let frames = 0;
+        const fpsEl = document.getElementById('fps-val');
+        const jsEl = document.getElementById('js-val');
 
         function animate() {
             requestAnimationFrame(animate);
-
-            const startFrame = performance.now();
-            TIME += 0.05;
-
+            TIME += 0.03;
             controls.update();
 
-            // --- MODE SWITCHING LOGIC ---
-            if (MODE === 'cpu') {
-                updateCPU(); // Heavy JS calculation
-            } else {
-                // GPU Mode: Just update 2 numbers, GPU does the rest
+            const jsStart = performance.now();
+
+            // --- BRANCHING PATHS ---
+            if (MODE === 'gpu') {
+                // --- GPU PATH (Easy Street) ---
+                // Just update 2 uniforms. The GPU does millions of calculations in parallel.
                 gpuMaterial.uniforms.uTime.value = TIME;
-                gpuMaterial.uniforms.uTilt.value.set(MOUSE.x, MOUSE.y);
+                gpuMaterial.uniforms.uInput.value.copy(INPUT_VECTOR);
+
+            } else {
+                // --- CPU PATH (The Torture Chamber) ---
+                const positions = geometry.attributes.position.array; // The array we write to
+                const normals = geometry.attributes.normal.array;       // Direction to move
+                const colors = geometry.attributes.color.array;         // Colors to write
+                const count = geometry.attributes.position.count;
+
+                // THE LOOP OF DEATH: Run this math 250,000 times linearly in JS
+                for (let i = 0; i < count; i++) {
+                    const ix = i * 3; const iy = i * 3 + 1; const iz = i * 3 + 2;
+
+                    // Read BASE position (where it started)
+                    const bx = basePositions[ix]; const by = basePositions[iy]; const bz = basePositions[iz];
+                    
+                    // 1. THE MATH (Must match GLSL exactly)
+                    let d = Math.sin(bx * 0.05 + TIME + INPUT_VECTOR.x);
+                    d *= Math.cos(by * 0.05 + TIME + INPUT_VECTOR.y);
+                    d += Math.sin(bz * 0.1 + TIME) * 0.5;
+                    const displacement = d * 15.0;
+
+                    // 2. THE MOVEMENT (Apply displacement along normal vector)
+                    positions[ix] = bx + (normals[ix] * displacement);
+                    positions[iy] = by + (normals[iy] * displacement);
+                    positions[iz] = bz + (normals[iz] * displacement);
+
+                    // 3. THE COLOR (Lerp between blue and red based on displacement)
+                    // Normalize displacement (-15 to 15) into 0 to 1 range
+                    let t = (displacement + 15) / 30;
+                    t = Math.max(0, Math.min(1, t)); // Clamp
+
+                    // Linear interpolation (lerp) for vibrant colors
+                    colors[ix] = COLOR_LOW.r + (COLOR_HIGH.r - COLOR_LOW.r) * t;
+                    colors[iy] = COLOR_LOW.g + (COLOR_HIGH.g - COLOR_LOW.g) * t;
+                    colors[iz] = COLOR_LOW.b + (COLOR_HIGH.b - COLOR_LOW.b) * t;
+                }
+                // Tell Three.js we changed massive amounts of data
+                geometry.attributes.position.needsUpdate = true;
+                geometry.attributes.color.needsUpdate = true;
+            }
+
+            const jsEnd = performance.now();
+            const jsDuration = jsEnd - jsStart;
+            
+            // Performance Measurer
+            frames++;
+            if (jsEnd - lastTime >= 1000) {
+                fpsEl.innerText = frames;
+                // If JS takes > 16ms, you are below 60fps. If > 33ms, below 30fps.
+                jsEl.innerText = jsDuration.toFixed(1);
+                jsEl.className = jsDuration > 20 ? 'val danger' : 'val';
+                frames = 0; lastTime = jsEnd;
             }
 
             renderer.render(scene, camera);
-
-            // --- STATS CALCULATION ---
-            const endFrame = performance.now();
-            const frameTime = endFrame - startFrame;
-            
-            frames++;
-            if (endFrame - lastTime >= 1000) {
-                fpsElem.innerText = frames;
-                msElem.innerText = frameTime.toFixed(2) + " ms";
-                
-                // Color coding stats
-                fpsElem.className = frames < 30 ? "stat-val bad" : "stat-val good";
-                
-                frames = 0;
-                lastTime = endFrame;
-            }
         }
-
         animate();
 
-        // --- UI EVENT LISTENERS ---
+        // --- INPUT LISTENERS (Data Gathering) ---
+        // Gyro (Mobile)
+        window.addEventListener('deviceorientation', (e) => {
+            if(e.beta) {
+                 // Normalize roughly to -2 to +2 range
+                 INPUT_VECTOR.y = e.beta / 20;  // Tilt forward/back
+                 INPUT_VECTOR.x = e.gamma / 20; // Tilt left/right
+            }
+        });
+        // Mouse (Desktop fallback)
+        window.addEventListener('mousemove', (e) => {
+            // Normalize to -2 to +2 range based on screen center
+            INPUT_VECTOR.x = (e.clientX / window.innerWidth - 0.5) * 4;
+            INPUT_VECTOR.y = (e.clientY / window.innerHeight - 0.5) * 4;
+        });
         
-        // Mode Toggle
-        document.querySelectorAll('.mode-opt').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // UI Update
-                document.querySelectorAll('.mode-opt').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                
-                // Logic Update
-                MODE = e.target.dataset.mode;
-                
-                if (MODE === 'cpu') {
-                    mesh.material = cpuMaterial;
-                    // Reset geometry to flat just in case
-                    createMesh(); 
-                } else {
-                    mesh.material = gpuMaterial;
-                }
-            });
-        });
-
-        // Complexity Slider
+        // --- UI CONTROLS ---
+        const cpuBtn = document.getElementById('cpu-btn');
+        const gpuBtn = document.getElementById('gpu-btn');
         const slider = document.getElementById('density-slider');
-        slider.addEventListener('input', (e) => {
-            SEGMENTS = parseInt(e.target.value);
-            createMesh(); // Rebuild mesh with new density
-        });
 
-        // Resize Handler
-        window.addEventListener('resize', () => {
+        cpuBtn.onclick = () => { 
+            MODE = 'cpu'; 
+            cpuBtn.classList.add('active-cpu'); gpuBtn.classList.remove('active-gpu'); 
+            rebuildMesh(); 
+        };
+        gpuBtn.onclick = () => { 
+            MODE = 'gpu'; 
+            gpuBtn.classList.add('active-gpu'); cpuBtn.classList.remove('active-cpu'); 
+            rebuildMesh(); 
+        };
+        slider.oninput = (e) => {
+            SEGMENTS = parseInt(e.target.value);
+            rebuildMesh();
+        }
+        window.onresize = () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
+        };
     </script>
 </body>
 </html>
